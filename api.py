@@ -13,6 +13,7 @@ def procurar_pagamentos():
         'api_token': config.get("API_TOKEN")
     }
     payload = {
+       
         "query": {
             "from": 0,
             "size": 50,
