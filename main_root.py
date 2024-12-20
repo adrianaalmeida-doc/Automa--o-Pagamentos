@@ -152,7 +152,7 @@ def main():
         else:
             log.error("Estrutura inesperada no processo encontrado. Verifique o formato.")
 
-log.info(f"Todos os itens dos processos encontrados foram processados para o ID da tarefa {id_task}.")
+    log.info(f"Todos os itens dos processos encontrados foram processados para o ID da tarefa {id_task}.")
 
 if __name__ == "__main__":
     main()
