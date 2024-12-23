@@ -121,16 +121,32 @@ def consulta_tarefa(novo_processo_id):
         response = requests.post(url, data=json.dumps(payload), headers=headers)
         if response.status_code in [200, 201]:
             log.info(f"Consulta bem-sucedida para o processo {novo_processo_id}.")
-            return response.json()
+            
+            response_data = response.json()
+
+            # Verifica se existem atividades abertas em "current_activities"
+            current_activities = response_data.get("current_activities", [])
+            if not current_activities:
+                log.error(f"Nenhuma atividade encontrada para o processo {novo_processo_id}.")
+                return None
+
+            for activity in current_activities:
+                if activity.get("status") == "opened":
+                    id_task = activity.get("id")
+                    log.info(f"Tarefa encontrada com ID: {id_task}")
+                    return id_task
+
+            log.error(f"Nenhuma atividade aberta encontrada no processo {novo_processo_id}.")
+            return None
         else:
-            log.error(f"Erro ao inserir item. Status: {response.status_code}")
-            return {}
+            log.error(f"Erro ao consultar o processo {novo_processo_id}. Status: {response.status_code}")
+            return None
     except requests.RequestException as e:
         log.error(f"Erro na requisição: {e}")
-        return {}
+        return None
     except json.JSONDecodeError as e:
         log.error(f"Erro de decodificação JSON: {e}")
-        return {}
+        return None
         
     
 
@@ -140,16 +156,31 @@ def inserir_item_tabela(id_task, item_data):
         'Content-Type': 'application/json',
         'api_token': config.get("API_TOKEN")
     }
-    payload = {"item": {"property_values": item_data}}
+    payload = { "item": {
+            "property_values": [
+                # {"id": "51dc5d70-9cfd-11ef-bc26-d53286ead034", "value": item_data["nome_cliente"]},
+                {"id": "5c5ecb70-9cfd-11ef-bc26-d53286ead034", "value": item_data["codigo"]},
+                # {"id": "634d1630-9cfd-11ef-bc26-d53286ead034", "value": item_data["cpf_cnpj"]},
+                # {"id": "6ae42410-9cfd-11ef-bc26-d53286ead034", "value": item_data["placa"]},
+                # {"id": "d3d89980-bd6c-11ef-ab18-b159b6633aaa", "value": item_data["chassi"]},
+                # {"id": "1039e2b0-9cfe-11ef-bc26-d53286ead034", "value": item_data["loja"], "text": ""},
+                # {"id": "042e6e40-9cff-11ef-bc26-d53286ead034", "value": item_data["taxa_placa"]},
+                # {"id": "39422ad0-bd6c-11ef-b44a-7790c4069fda", "value": item_data["taxa_transferencia"]},
+                {"id": "8a045cf0-9cff-11ef-bc26-d53286ead034", "value": item_data["receber"]},
+                {"id": "1ca735e0-bd6d-11ef-ab18-b159b6633aaa", "value": item_data["pagar"]},
+                {"id": "eb20e060-bd6d-11ef-ab18-b159b6633aaa", "value": item_data["taxas_extras"]},
+                {"id": "573c9dd0-bd6d-11ef-ab18-b159b6633aaa", "value": item_data["saldo_doc"]},
+                {"id": "bd933fb0-b3d3-11ef-b692-b3bb4e8edf2e", "value": item_data["responsavel_atual"], "text": ""}
+            ]}}
+   
     try:
-        response = requests.post(url, data=json.dumps(payload), headers=headers)
-
+        response = requests.post(url, json=payload, headers=headers)
         
         if response.status_code in [200, 201]:
             log.info("Item inserido com sucesso no processo.")
             return response.json()
         else:
-            log.error(f"Erro ao inserir item. Status: {response.status_code}. ")
+            log.error(f"Erro ao inserir item. Status: {response.status_code}. Detalhes: {response.text}")
             return {}
 
     except requests.RequestException as e:
