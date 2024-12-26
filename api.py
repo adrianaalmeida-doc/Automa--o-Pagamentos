@@ -163,17 +163,13 @@ def inserir_item_tabela(id_task, item_data):
                 {"id": "634d1630-9cfd-11ef-bc26-d53286ead034", "value": item_data["CPF / CNPJ"]},
                 {"id": "6ae42410-9cfd-11ef-bc26-d53286ead034", "value": item_data["placa"]},
                 {"id": "d3d89980-bd6c-11ef-ab18-b159b6633aaa", "value": item_data["chassi"]},
-                {"id": "8d11b470-ae4c-11ef-b1fc-a5a6a8166bca", "value": item_data["placa"]},
                 {"id": "1039e2b0-9cfe-11ef-bc26-d53286ead034", "value": item_data["loja"]},
-                {"id": "8a045cf0-9cff-11ef-bc26-d53286ead034", "value": item_data["receber"]},
+                {"id": "e4710fd0-c3b0-11ef-acd7-771d0e5c06cd", "value": item_data["tipo_de_servico"]},
                 {"id": "1ca735e0-bd6d-11ef-ab18-b159b6633aaa", "value": item_data["pagar"]},
-                {"id": "1c9e95e0-c1f8-11ef-acc2-bbf857ae428c", "value": item_data["taxas_extras"]},
-                {"id": "eea362f0-c1f8-11ef-acc2-bbf857ae428c", "value": item_data["placa_valor"]},
-                {"id": "573c9dd0-bd6d-11ef-ab18-b159b6633aaa", "value": item_data["saldo_doc"]},
-                {"id": "39422ad0-bd6c-11ef-b44a-7790c4069fda", "value": item_data["taxa_de_transferencia"]},
                 {"id": "24cd4fe0-c1f8-11ef-acc2-bbf857ae428c", "value": item_data["taxas_detran"]},
-                {"id": "bd933fb0-b3d3-11ef-b692-b3bb4e8edf2e", "value": item_data["responsavel_atual"], "text": ""}
+                {"id": "9be44cd0-bd6d-11ef-ab18-b159b6633aaa", "value": item_data["responsavel_atual"], "text": ""}
             ]}}
+   
    
     try:
         response = requests.post(url, json=payload, headers=headers)
