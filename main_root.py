@@ -4,36 +4,91 @@ import json
 from datetime import datetime
 
 def main():
+    
+    
+    
+# Configuração de diretórios
+    pasta_destino = os.path.join(os.path.dirname(__file__), "documentos_baixados")
+    os.makedirs(pasta_destino, exist_ok=True)
+    log.info("Os documentos serão salvos em: {pasta_destino}")
+
+    # Procurar pagamentos
     processos_encontrados = procurar_pagamentos()
     docs = processos_encontrados.get("docs", [])
-    
+
     if not docs:
         log.error("Nenhum processo encontrado na lista de 'docs'.")
         return
-    
-    for doc in docs:  
+
+    arquivos_baixados = []
+
+    for doc in docs:
         process_id = doc.get("process_id")
         if not process_id:
-            log.error("ID do processo não encontrado no documento.")
-            continue  
-        
-        print("ID do processo encontrado:", process_id)
-    
-    # Definir dados do processo
+            log.error("Processo não encontrado no documento.")
+            continue
+
+        log.info(f"ID do processo encontrado: {process_id}")
+        documentos_processo = listar_documentos(process_id)
+
+        ids_desejados = {
+            "99122f90-c448-11ef-9ad2-53afbcd659f9",
+            "b6141320-c6f9-11ef-9134-c9cc1df81ba6",
+            "236c46d0-c449-11ef-9ad2-53afbcd659f9",
+        }
+
+        for documento in documentos_processo:
+            id = documento.get("id")
+            if id in ids_desejados:
+                document_id = documento.get("document_id")
+                file_name = documento.get("file_name", f"{id}.pdf")
+                log.info(f"Baixando {id} com document ID: {document_id}")
+
+                conteudo = baixar_documento_da_api(document_id, pasta_destino)
+                if conteudo:
+                    try:
+                        caminho_arquivo = os.path.join(pasta_destino, file_name)
+                        with open(caminho_arquivo, "wb") as arquivo:
+                            arquivo.write(conteudo.read())
+                        arquivos_baixados.append(caminho_arquivo)
+                    except Exception as e:
+                        log.error(f"Erro ao salvar o documento {id}: {e}")
+
+    # Mesclar PDFs
+    if arquivos_baixados:
+        pdf_saida = os.path.join(pasta_destino, "PDF_Mesclado.pdf")
+        if len(arquivos_baixados) > 1:
+            log.info(f"Mesclando {len(arquivos_baixados)} PDFs: {arquivos_baixados}")
+            arquivo_final = mesclar_pdfs(arquivos_baixados, pdf_saida)
+            log.info(f"PDF mesclado salvo em: {arquivo_final}")
+        else:
+            log.info("Apenas um PDF encontrado. Não há necessidade de mesclagem.")
+            arquivo_final = arquivos_baixados[0]
+
+        if os.path.exists(pdf_saida):
+            log.info(f"Arquivo PDF_Mesclado.pdf gerado em: {pdf_saida}")
+        else:
+            log.error("Arquivo PDF_Mesclado.pdf não foi gerado.")
+            return
+    else:
+        log.warning("Nenhum arquivo PDF encontrado para mesclar.")
+        return
+
+    # Criar novo processo
     dados_processo = [
         {"id": "a709d0a0-5e35-11ee-a079-1f098f945990", "value": datetime.now().strftime("%y%m%d.%H%M%S.%f")[:20]},
         {"id": "a2621a80-5e35-11ee-a079-1f098f945990", "value": "65a57321778210009d3aff8f"},
         {"id": "8b3e8060-5e39-11ee-8459-ab06c4a21f7f", "value": "64a4060258f25700a09f830d"},
-        {"id": "9f339a10-5e39-11ee-8459-ab06c4a21f7f", "value": str(datetime.now().date())}
+        {"id": "9f339a10-5e39-11ee-8459-ab06c4a21f7f", "value": str(datetime.now().date())},
     ]
-    
-    # Criar novo processo
-    novo_processo_id = criar_processo(dados_processo)
+
+    novo_processo_id = criar_processo(dados_processo, anexar_documento())
     if not novo_processo_id:
         log.error("Erro ao criar o novo processo.")
         return
-    log.info(f"Processo criado com ID: {novo_processo_id}")
 
+    log.info(f"Processo criado com ID: {novo_processo_id}")
+    
     id_task = consulta_tarefa(novo_processo_id)
     if not id_task:
         log.error("Erro ao consultar a tarefa associada ao processo.")
@@ -41,56 +96,22 @@ def main():
 
     log.info(f"Tarefa associada ao processo: {id_task}")
     
+        
     for processo in docs:
-            item_data = {}
-            
-            log.info(f"Iniciando o preenchimento dos dados para o documento {processo.get('process_id')}")
-
-            props = processo.get("props", [])
-         
-            
-            for prop in props:
+        item_data = {}
+        log.info(f"Iniciando o preenchimento dos dados para o documento {processo.get('process_id')}")
+        
+        props = processo.get("props", [])
+        if props:
+           for prop in props:
                key = prop.get("key")
                value = prop.get("value")
-               
-               if key == "3a1aff10-ae4c-11ef-b1fc-a5a6a8166bca" and "nome_do_cliente" not in item_data:
-                item_data["cliente"] = value
-               elif key == "1440e290-b3d4-11ef-b692-b3bb4e8edf2e" and "codigo_do_cliente" not in item_data:
-                   item_data["codigo"] = value
-               elif key == "4eef7c40-ae4c-11ef-b1fc-a5a6a8166bca" and "cpf_cnpj_do_cliente" not in item_data:
-                   item_data["CPF / CNPJ"] = value
-               elif key == "8d11b470-ae4c-11ef-b1fc-a5a6a8166bca" and "placa" not in item_data:
-                   item_data["placa"] = value
-               elif key == "36d04b70-ae4d-11ef-92f1-a1a7c4c0009f" and "chassi" not in item_data:
-                   item_data["chassi"] = value
-               elif key == "d38cbeb0-ae5e-11ef-b6f7-cd21e09e8d3f" and "valor_a_pagar" not in item_data:
-                   item_data["pagar"] = value
-               elif key == "2cee0a80-ae4c-11ef-b1fc-a5a6a8166bca" and "empresa" not in item_data:
-                   item_data["loja"] = value
-               elif key == "7dd2b9f0-c3af-11ef-8644-afccd683324c" and "tipo_de_servico " not in item_data:
-                    item_data["tipo_de_servico"] = value
-            #    elif key == "db647f10-ae5e-11ef-b6f7-cd21e09e8d3f" and "saldo_doc" not in item_data:
-            #        item_data["saldo_doc"] = value
+               fluxo = processo.get("fluxo")
+               if key and value and fluxo:
+                    inserir_item_tabela(id_task, item_data )
+                    log.info(f"Item {key} preenchido com sucesso.")
+               else:
+                    log.warning(f"Dados incompletos para preencher o item {key}.")
             
-               elif key == "bd933fb0-b3d3-11ef-b692-b3bb4e8edf2e" and "responsavel_atual" not in item_data:
-                   item_data["responsavel_atual"] = value
-               elif key == "e3c86ed0-b95f-11ef-9661-fff35e180cdb" and "taxas_detran" not in item_data:
-                   item_data["taxas_detran"] = value
-              
-               
-               
-              
-                   
-            
-
-            if item_data:
-                    try:
-                        inserir_item_tabela(id_task, item_data)
-                        log.info(f"Item inserido na tabela para a tarefa ID: {id_task} com dados: {item_data}")
-                    except Exception as e:
-                        log.error(f"Erro ao inserir item na tabela: {e}")
-            else:
-                    log.warning(f"Nenhum dado relevante encontrado no documento {processo.get('process_id')}.")
-
 if __name__ == "__main__":
     main()
